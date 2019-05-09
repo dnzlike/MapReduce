@@ -17,11 +17,26 @@ import java.util.regex.Pattern;
 public class WordCount {
 
     public static List<KeyValue> mapFunc(String file, String value) {
-        return null;
+        List<KeyValue> kvs = new ArrayList<>();
+        Pattern p = Pattern.compile("([a-zA-Z0-9]+)");
+        Matcher m = p.matcher(value);
+        while (!m.hitEnd() && m.find()) {
+            KeyValue kv = new KeyValue(file, value);
+            kv.key = m.group();
+            kv.value = "1";
+//            System.out.println(m.group());
+            kvs.add(kv);
+//            System.out.println(kv.key + " " + kv.value);
+        }
+
+
+//        kvs.add(kv);
+        return kvs;
     }
 
     public static String reduceFunc(String key, String[] values) {
-        return null;
+        int len = values.length;
+        return String.valueOf(len);
     }
 
     public static void main(String[] args) {
@@ -33,7 +48,7 @@ public class WordCount {
             String src = args[2];
             File file = new File(".");
             String[] files = file.list(new WildcardFileFilter(src));
-//            System.out.println(files[0]);
+            System.out.println(files[0]);
             if (args[1].equals("sequential")) {
                 mr = Master.sequential("wcseq", files, 3, WordCount::mapFunc, WordCount::reduceFunc);
             } else {

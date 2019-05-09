@@ -69,6 +69,7 @@ public class Reducer {
                 char[] content = new char[length.intValue()];
                 FileReader fr = new FileReader(file);
                 fr.read(content);
+                fr.close();
                 file.delete();
                 JSONArray jsonArray = JSONArray.parseArray(String.valueOf(content));
                 List<KeyValue> list = JSONObject.parseArray(jsonArray.toJSONString(), KeyValue.class);

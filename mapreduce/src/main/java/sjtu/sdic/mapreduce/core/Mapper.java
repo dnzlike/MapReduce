@@ -4,12 +4,15 @@ import com.alibaba.fastjson.JSONArray;
 import sjtu.sdic.mapreduce.common.KeyValue;
 import sjtu.sdic.mapreduce.common.Utils;
 
-import java.io.File;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.Charset;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+
 
 /**
  * Created by Cachhe on 2019/4/19.
@@ -65,7 +68,56 @@ public class Mapper {
      * @param mapFunc the user-defined map function
      */
     public static void doMap(String jobName, int mapTask, String inFile, int nReduce, MapFunc mapFunc) {
-        
+        File input = new File(inFile);
+        Long length = input.length();
+        FileReader fr;
+        char[] content = new char[length.intValue()];
+        try {
+            fr = new FileReader(input);
+            fr.read(content);
+            List<KeyValue> res = mapFunc.map(inFile, String.valueOf(content));
+            List<File> files = new ArrayList<>();
+            List<JSONArray> list = new ArrayList<>();
+            for (int i = 0; i < nReduce; i++) {
+                File file = new File(Utils.reduceName(jobName, mapTask, i));
+                file.createNewFile();
+                files.add(file);
+                list.add(new JSONArray());
+            }
+
+            for (int i = 0; i < res.size(); i++) {
+                int hash = hashCode(res.get(i).key) % nReduce;
+                JSONArray jsonArray = list.get(hash);
+                jsonArray.add(res.get(i));
+                list.set(hash, jsonArray);
+            }
+
+            for (int i = 0; i < nReduce; i++) {
+//                FileWriter fw = new FileWriter(files.get(i));
+//                fw.write(list.get(i).toJSONString());
+//                fw.flush();
+//                fw.close();
+                BufferedWriter bw = Files.newBufferedWriter(files.get(i).toPath(),
+                        Charset.forName("UTF-8"),
+                        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                bw.write(list.get(i).toJSONString());
+                bw.flush();
+            }
+
+//            File fi = files.get(0);
+//            fr = new FileReader(files.get(0));
+//            Long len = fi.length();
+//            System.out.println(len);
+//            content = new char[len.intValue()];
+//            fr.read(content);
+//            System.out.println("content in file");
+//            System.out.println(content);
+            fr.close();
+            System.out.println("doMap: finish");
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /**

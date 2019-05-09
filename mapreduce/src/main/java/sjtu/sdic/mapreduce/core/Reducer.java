@@ -6,6 +6,8 @@ import sjtu.sdic.mapreduce.common.KeyValue;
 import sjtu.sdic.mapreduce.common.Utils;
 
 import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -58,6 +60,45 @@ public class Reducer {
      * @param reduceFunc user-defined reduce function
      */
     public static void doReduce(String jobName, int reduceTask, String outFile, int nMap, ReduceFunc reduceFunc) {
-        
+        List<String> keys = new ArrayList<>();
+        TreeMap<String, List<String>> map = new TreeMap<>();
+        try {
+            for (int i = 0; i < nMap; i++) {
+                File file = new File(Utils.reduceName(jobName, i, reduceTask));
+                Long length = file.length();
+                char[] content = new char[length.intValue()];
+                FileReader fr = new FileReader(file);
+                fr.read(content);
+                file.delete();
+                JSONArray jsonArray = JSONArray.parseArray(String.valueOf(content));
+                List<KeyValue> list = JSONObject.parseArray(jsonArray.toJSONString(), KeyValue.class);
+                for (int j = 0; j < list.size(); j++) {
+                    if (!keys.contains(list.get(j).key)) {
+                        keys.add(list.get(j).key);
+                        map.put(list.get(j).key, new ArrayList<>());
+                    }
+                    List<String> values = map.get(list.get(j).key);
+                    values.add(list.get(j).value);
+                    map.put(list.get(j).key, values);
+                }
+            }
+
+            JSONObject jsonObject = new JSONObject();
+            for (int i = 0; i < keys.size(); i++) {
+                String key = keys.get(i);
+                List<String> l = map.get(key);
+                String[] values = l.toArray(new String[l.size()]);
+                String value = reduceFunc.reduce(key, values);
+                jsonObject.put(key, value);
+            }
+
+            FileWriter fw = new FileWriter(outFile);
+            fw.write(jsonObject.toJSONString());
+            fw.flush();
+            fw.close();
+        }
+        catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 }

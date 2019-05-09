@@ -33,6 +33,7 @@ public class WordCount {
             String src = args[2];
             File file = new File(".");
             String[] files = file.list(new WildcardFileFilter(src));
+//            System.out.println(files[0]);
             if (args[1].equals("sequential")) {
                 mr = Master.sequential("wcseq", files, 3, WordCount::mapFunc, WordCount::reduceFunc);
             } else {

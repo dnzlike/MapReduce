@@ -52,7 +52,30 @@ public class Scheduler {
         // have completed successfully, schedule() should return.
         // Your code here (Part III, Part IV).
 
-        
+        final CountDownLatch countDownLatch = new CountDownLatch(nTasks);
+        for (int i = 0; i < nTasks; i++) {
+            final int fnTasks = i, fnOther = nOther;
+            final String file = mapFiles[i];
+            new Thread(() -> {
+                try {
+                    DoTaskArgs doTaskArgs = new DoTaskArgs(jobName, file, phase, fnTasks, fnOther);
+                    String curWorker = registerChan.read();
+                    Call.getWorkerRpcService(curWorker).doTask(doTaskArgs);
+                    registerChan.write(curWorker);
+                    countDownLatch.countDown();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+
+            }).start();
+        }
+
+        try {
+            countDownLatch.await();
+        }
+        catch (InterruptedException e) {
+            e.printStackTrace();
+        }
 
         System.out.println(String.format("Schedule: %s done", phase));
     }

@@ -65,6 +65,7 @@ public class Reducer {
         try {
             for (int i = 0; i < nMap; i++) {
                 File file = new File(Utils.reduceName(jobName, i, reduceTask));
+//                System.out.println("=================" + file.getName() + "=================");
                 Long length = file.length();
                 char[] content = new char[length.intValue()];
                 FileReader fr = new FileReader(file);

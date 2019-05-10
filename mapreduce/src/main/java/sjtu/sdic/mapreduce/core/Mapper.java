@@ -82,6 +82,8 @@ public class Mapper {
                 File file = new File(Utils.reduceName(jobName, mapTask, i));
                 file.createNewFile();
                 files.add(file);
+//                System.out.println("=================" + file.getName() + "=================");
+
                 list.add(new JSONArray());
             }
 
@@ -93,15 +95,15 @@ public class Mapper {
             }
 
             for (int i = 0; i < nReduce; i++) {
-//                FileWriter fw = new FileWriter(files.get(i));
-//                fw.write(list.get(i).toJSONString());
-//                fw.flush();
-//                fw.close();
-                BufferedWriter bw = Files.newBufferedWriter(files.get(i).toPath(),
-                        Charset.forName("UTF-8"),
-                        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                bw.write(list.get(i).toJSONString());
-                bw.flush();
+                FileWriter fw = new FileWriter(files.get(i));
+                fw.write(list.get(i).toJSONString());
+                fw.flush();
+                fw.close();
+//                BufferedWriter bw = Files.newBufferedWriter(files.get(i).toPath(),
+//                        Charset.forName("UTF-8"),
+//                        StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+//                bw.write(list.get(i).toJSONString());
+//                bw.flush();
             }
 
 //            File fi = files.get(0);
@@ -113,7 +115,7 @@ public class Mapper {
 //            System.out.println("content in file");
 //            System.out.println(content);
             fr.close();
-            System.out.println("doMap: finish");
+//            System.out.println("doMap: finish");
         }
         catch (IOException e) {
             e.printStackTrace();

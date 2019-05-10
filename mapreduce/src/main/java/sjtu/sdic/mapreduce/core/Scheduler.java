@@ -1,5 +1,6 @@
 package sjtu.sdic.mapreduce.core;
 
+import com.alipay.sofa.rpc.core.exception.SofaTimeOutException;
 import sjtu.sdic.mapreduce.common.Channel;
 import sjtu.sdic.mapreduce.common.DoTaskArgs;
 import sjtu.sdic.mapreduce.common.JobPhase;
@@ -60,7 +61,13 @@ public class Scheduler {
                 try {
                     DoTaskArgs doTaskArgs = new DoTaskArgs(jobName, file, phase, fnTasks, fnOther);
                     String curWorker = registerChan.read();
-                    Call.getWorkerRpcService(curWorker).doTask(doTaskArgs);
+                    try {
+                        Call.getWorkerRpcService(curWorker).doTask(doTaskArgs);
+                    }
+                    catch (SofaTimeOutException e) {
+                        curWorker = registerChan.read();
+                        Call.getWorkerRpcService(curWorker).doTask(doTaskArgs);
+                    }
                     registerChan.write(curWorker);
                     countDownLatch.countDown();
                 } catch (InterruptedException e) {

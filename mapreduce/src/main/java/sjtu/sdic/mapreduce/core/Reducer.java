@@ -11,10 +11,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 
 /**
  * Created by Cachhe on 2019/4/19.
@@ -60,28 +57,33 @@ public class Reducer {
      * @param reduceFunc user-defined reduce function
      */
     public static void doReduce(String jobName, int reduceTask, String outFile, int nMap, ReduceFunc reduceFunc) {
+        System.out.println("doReduce: start");
         List<String> keys = new ArrayList<>();
         TreeMap<String, List<String>> map = new TreeMap<>();
         try {
             for (int i = 0; i < nMap; i++) {
                 File file = new File(Utils.reduceName(jobName, i, reduceTask));
-//                System.out.println("=================" + file.getName() + "=================");
                 Long length = file.length();
                 char[] content = new char[length.intValue()];
                 FileReader fr = new FileReader(file);
-                fr.read(content);
+                fr. read(content);
                 fr.close();
                 file.delete();
                 JSONArray jsonArray = JSONArray.parseArray(String.valueOf(content));
                 List<KeyValue> list = JSONObject.parseArray(jsonArray.toJSONString(), KeyValue.class);
                 for (int j = 0; j < list.size(); j++) {
-                    if (!keys.contains(list.get(j).key)) {
-                        keys.add(list.get(j).key);
-                        map.put(list.get(j).key, new ArrayList<>());
+                    KeyValue kv = list.get(j);
+                    if (!map.containsKey(kv.key)) {
+                        keys.add(kv.key);
+                        List<String> vs = new ArrayList<>();
+                        vs.add(list.get(j).value);
+                        map.put(list.get(j).key, vs);
                     }
-                    List<String> values = map.get(list.get(j).key);
-                    values.add(list.get(j).value);
-                    map.put(list.get(j).key, values);
+                    else {
+                        List<String> values = map.get(list.get(j).key);
+                        values.add(list.get(j).value);
+                        map.put(list.get(j).key, values);
+                    }
                 }
             }
 
@@ -93,7 +95,6 @@ public class Reducer {
                 String value = reduceFunc.reduce(key, values);
                 jsonObject.put(key, value);
             }
-
             FileWriter fw = new FileWriter(outFile);
             fw.write(jsonObject.toJSONString());
             fw.flush();
@@ -102,5 +103,6 @@ public class Reducer {
         catch (IOException e) {
             e.printStackTrace();
         }
+        System.out.println("doReduce: finish");
     }
 }

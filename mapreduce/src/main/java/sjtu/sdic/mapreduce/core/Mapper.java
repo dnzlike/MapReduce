@@ -73,6 +73,7 @@ public class Mapper {
         FileReader fr;
         char[] content = new char[length.intValue()];
         try {
+            System.out.println("doMap: start");
             fr = new FileReader(input);
             fr.read(content);
             List<KeyValue> res = mapFunc.map(inFile, String.valueOf(content));
@@ -115,7 +116,7 @@ public class Mapper {
 //            System.out.println("content in file");
 //            System.out.println(content);
             fr.close();
-//            System.out.println("doMap: finish");
+            System.out.println("doMap: finish");
         }
         catch (IOException e) {
             e.printStackTrace();

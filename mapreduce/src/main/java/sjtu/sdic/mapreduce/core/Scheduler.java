@@ -1,5 +1,6 @@
 package sjtu.sdic.mapreduce.core;
 
+import com.alipay.sofa.rpc.core.exception.SofaRpcException;
 import com.alipay.sofa.rpc.core.exception.SofaTimeOutException;
 import sjtu.sdic.mapreduce.common.Channel;
 import sjtu.sdic.mapreduce.common.DoTaskArgs;
@@ -48,10 +49,13 @@ public class Scheduler {
 
         System.out.println(String.format("Schedule: %d %s tasks (%d I/Os)", nTasks, phase, nOther));
 
-        //TODO:
+        /**
         // All ntasks tasks have to be scheduled on workers. Once all tasks
         // have completed successfully, schedule() should return.
+        //
         // Your code here (Part III, Part IV).
+        //
+        */
 
         final CountDownLatch countDownLatch = new CountDownLatch(nTasks);
         for (int i = 0; i < nTasks; i++) {
@@ -61,13 +65,23 @@ public class Scheduler {
                 try {
                     DoTaskArgs doTaskArgs = new DoTaskArgs(jobName, file, phase, fnTasks, fnOther);
                     String curWorker = registerChan.read();
-                    try {
-                        Call.getWorkerRpcService(curWorker).doTask(doTaskArgs);
+                    boolean notDone = true;
+                    while (notDone) {
+                        try {
+                            notDone = false;
+                            Call.getWorkerRpcService(curWorker).doTask(doTaskArgs);
+                        }
+                        catch (SofaTimeOutException e) {
+                            curWorker = registerChan.read();
+                            notDone = true;
+//                            Call.getWorkerRpcService(curWorker).doTask(doTaskArgs);
+                        }
+                        catch (SofaRpcException e) {
+                            curWorker = registerChan.read();
+                            notDone = true;
+                        }
                     }
-                    catch (SofaTimeOutException e) {
-                        curWorker = registerChan.read();
-                        Call.getWorkerRpcService(curWorker).doTask(doTaskArgs);
-                    }
+
                     registerChan.write(curWorker);
                     countDownLatch.countDown();
                 } catch (InterruptedException e) {
@@ -83,7 +97,6 @@ public class Scheduler {
         catch (InterruptedException e) {
             e.printStackTrace();
         }
-
         System.out.println(String.format("Schedule: %s done", phase));
     }
 }

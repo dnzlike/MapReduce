@@ -18,7 +18,7 @@ public class InvertedIndex {
     public static List<KeyValue> mapFunc(String file, String value) {
         List<KeyValue> kvs = new ArrayList<>();
         HashSet<String> keys = new HashSet<>();
-        Pattern p = Pattern.compile("([a-zA-Z]+)");
+        Pattern p = Pattern.compile("([a-zA-Z0-9]+)");
         Matcher m = p.matcher(value);
         while (!m.hitEnd() && m.find()) {
             KeyValue kv = new KeyValue(file, value);
@@ -55,7 +55,7 @@ public class InvertedIndex {
             if (args[1].equals("sequential")) {
                 mr = Master.sequential("iiseq", files, 3, InvertedIndex::mapFunc, InvertedIndex::reduceFunc);
             } else {
-                mr = Master.distributed("iiseq", files, 3, args[1]);
+                mr = Master.distributed("wcdis", files, 3, args[1]);
             }
             mr.mWait();
         } else {

@@ -34,9 +34,6 @@ import static sjtu.sdic.mapreduce.common.Utils.debug;
  */
 public class Master implements MasterRpcService {
     public static final int MASTER_PORT = 12200;
-    private final static Map<String, MasterRpcService> masterRpcServiceMap = new ConcurrentHashMap<>();
-    private final static Map<String, ConsumerConfig<MasterRpcService>> masterConsumerMap = new ConcurrentHashMap<>();
-
     private Lock lock;
 
     public String address; // stands for name in sequential, and ip for distributed
@@ -66,9 +63,7 @@ public class Master implements MasterRpcService {
         workers = new ArrayList<>();
     }
 
-    public static MasterRpcService getMasterRpcService(String address) {
-        return masterRpcServiceMap.get(address);
-    }
+
 
     /**
      * Sequential runs map and reduce tasks sequentially, waiting for each task to
@@ -134,11 +129,7 @@ public class Master implements MasterRpcService {
     public void shutdown() {
         debug("Shutdown: registration server");
         if (isExported && rpc != null) {
-            System.err.println("Shutdown RPC MASTER");
             rpc.unExport();
-            masterRpcServiceMap.remove(address);
-            masterConsumerMap.get(address).unRefer();
-            masterConsumerMap.remove(address);
             isExported = false;
         }
     }
@@ -212,8 +203,8 @@ public class Master implements MasterRpcService {
                 Scheduler.schedule(mr.jobName, mr.files, mr.nReduce, jobPhase, ch);
                 return null;
             }, aVoid -> {
-                mr.stats = mr.killWorkers();
                 mr.stopRPCServer();
+                mr.stats = mr.killWorkers();
                 return null;
             });
         });
@@ -311,14 +302,6 @@ public class Master implements MasterRpcService {
 
             rpc.export();
 
-            ConsumerConfig<MasterRpcService> consumerConfig = new ConsumerConfig<MasterRpcService>()
-                    .setInterfaceId(MasterRpcService.class.getName()) // Specify the interface
-                    .setUniqueId(address)
-                    .setProtocol("bolt") // Specify the protocol
-                    .setDirectUrl("bolt://127.0.0.1:" + Master.MASTER_PORT); // Specify the direct connection address
-
-            masterRpcServiceMap.put(address, consumerConfig.refer());
-            masterConsumerMap.put(address, consumerConfig);
         } else {
             rpc.export();
         }

@@ -12,7 +12,6 @@ import sjtu.sdic.mapreduce.common.DoTaskArgs;
 import sjtu.sdic.mapreduce.common.Parallelism;
 import sjtu.sdic.mapreduce.common.Utils;
 import sjtu.sdic.mapreduce.rpc.Call;
-import sjtu.sdic.mapreduce.rpc.MasterRpcService;
 import sjtu.sdic.mapreduce.rpc.WorkerRpcService;
 
 import java.util.Collections;
@@ -29,8 +28,6 @@ import java.util.concurrent.locks.ReentrantLock;
  */
 public class Worker implements WorkerRpcService {
     public static final int WORKER_PORT = 13300;
-    private final static Map<String, WorkerRpcService> workerRpcServiceMap = new ConcurrentHashMap<>();
-    private final static Map<String, ConsumerConfig<WorkerRpcService>> workerConsumerMap = new ConcurrentHashMap<>();
 
     private Lock lock;
     public String name;
@@ -43,6 +40,7 @@ public class Worker implements WorkerRpcService {
     private int concurrent; // number of parallel DoTasks in this worker; mutex
 
     private ProviderConfig<WorkerRpcService> providerConfig; // handle of RPC service
+
     private Parallelism parallelism;
 
     private Worker() {
@@ -50,9 +48,6 @@ public class Worker implements WorkerRpcService {
         rpcCond = lock.newCondition();
     }
 
-    public static WorkerRpcService getWorkerRpcService(String address) {
-        return workerRpcServiceMap.get(address);
-    }
 
     /**
      * Shutdown is called by the master when all work has been completed.
@@ -251,13 +246,6 @@ public class Worker implements WorkerRpcService {
 
         providerConfig.export(); // Publish service
 
-        ConsumerConfig<WorkerRpcService> consumerConfig = new ConsumerConfig<WorkerRpcService>()
-                .setInterfaceId(WorkerRpcService.class.getName()) // Specify the interface
-                .setUniqueId(name)
-                .setProtocol("bolt") // Specify the protocol
-                .setDirectUrl("bolt://127.0.0.1:" + Worker.getPort(name)); // Specify the direct connection address
-        workerRpcServiceMap.put(name, consumerConfig.refer());
-        workerConsumerMap.put(name, consumerConfig);
 
         register(master);
 
@@ -267,9 +255,6 @@ public class Worker implements WorkerRpcService {
                 lock.lock();
                 if (nRPC == 0) {
                     providerConfig.unExport();
-                    workerRpcServiceMap.remove(name);
-                    workerConsumerMap.get(name).unRefer();
-                    workerConsumerMap.remove(name);
                     break;
                 }
                 try {
